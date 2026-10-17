@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 31+。クラウドバックアップ・端末間の移行に位置の記録（DB）と動画を含めない。 -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

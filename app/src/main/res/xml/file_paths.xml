@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 共有: GPX は cache/share/、動画はアプリ専用の外部領域 Movies/dashcam/ のまま、SNS 用に書き出した動画は Movies/sns/ から渡す。 -->
+<paths>
+    <cache-path name="share" path="share/" />
+    <external-files-path name="clips" path="Movies/dashcam/" />
+    <external-files-path name="sns" path="Movies/sns/" />
+</paths>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 24-25 用。26 以降は mipmap-anydpi-v26 のアダプティブ版が使われる。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">    <path
+        android:pathData="M20,0 L88,0 A20,20 0 0 1 108,20 L108,88 A20,20 0 0 1 88,108 L20,108 A20,20 0 0 1 0,88 L0,20 A20,20 0 0 1 20,0 Z"
+        android:fillColor="#14213D" />    <!-- 道（下の線） -->
+    <path
+        android:pathData="M36,77 L72,77"
+        android:strokeColor="#FFB300"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- 車（横から。窓は穴） -->
+    <path
+        android:pathData="M27,62 L27,54 Q27,50 31,49 L40,48 L46,41 Q48,39 51,39 L62,39 Q65,39 67,41 L73,48 L78,49 Q82,50 82,54 L82,62 Z M47,47 L51,42 L56,42 L56,47 Z M59,47 L59,42 L63,42 Q64,42 65,43 L68,47 Z"
+        android:fillType="evenOdd"
+        android:fillColor="#FFFFFF" />
+    <!-- 車輪（輪の形） -->
+    <path
+        android:pathData="M33,65 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 Z M37,65 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z M63,65 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 Z M67,65 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z"
+        android:fillType="evenOdd"
+        android:fillColor="#FFFFFF" />
+    <!-- 録画中の点 -->
+    <path
+        android:pathData="M63.5,31 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z"
+        android:fillColor="#FF3B30" /></vector>

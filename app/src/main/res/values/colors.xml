@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand_primary">#FF1565C0</color>
+    <color name="brand_primary_dark">#FF90CAF9</color>
+    <color name="brand_accent">#FFFF6F00</color>
+    <color name="brand_container">#FFD6E4FF</color>
+    <color name="brand_on_container">#FF001B3D</color>
+    <color name="brand_container_dark">#FF0D3A6E</color>
+    <color name="brand_on_container_dark">#FFD6E4FF</color>
+    <color name="brand_surface">#FFF8F9FC</color>
+    <!-- 走行画面の HUD（半透明の黒地に白文字） -->
+    <color name="hud_panel_bg">#99000000</color>
+    <color name="hud_text">#FFFFFFFF</color>
+    <color name="hud_text_sub">#FFCFD8DC</color>
+    <color name="hud_accent">#FFFFB300</color>
+    <color name="hud_warn">#FFFF5252</color>
+    <color name="hud_ok">#FF69F0AE</color>
+    <color name="hud_map_arrow">#FF1E88E5</color>
+    <color name="hud_map_arrow_outline">#FFFFFFFF</color>
+    <!-- 録画中の表示・［保護］ -->
+    <color name="recording">#FFE53935</color>
+    <color name="protect">#FFFF8F00</color>
+    <color name="protect_dark">#FFE65100</color>
+    <!-- 駐車・寄り道（P の印・徒歩の軌跡） -->
+    <color name="park">#FF6A1B9A</color>
+    <color name="park_light">#FFCE93D8</color>
+    <!-- 開拓したマス（半透明）と、期間・ドライブで初めて開拓したマス -->
+    <color name="cell_explored">#552E7D32</color>
+    <color name="cell_new">#66FF6F00</color>
+    <!-- 地図の軌跡 -->
+    <color name="track_line">#FFE53935</color>
+    <!-- 生の GPS の点と精度の円（ドライブの詳細の比較表示、0.8.0〜。速度の色と重ならない赤紫） -->
+    <color name="raw_gps">#FFD81B60</color>
+    <!-- 区間の表（いちばん速い・遅い区間） -->
+    <color name="split_fast">#4043A047</color>
+    <color name="split_slow">#40E53935</color>
+    <!-- アイコン -->
+    <color name="icon_background">#FF14213D</color>
+</resources>

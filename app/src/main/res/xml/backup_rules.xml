@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 30 以下の自動バックアップ。位置の記録（DB）と動画は端末の外に出さない方針なので対象外（設定だけ）。 -->
+<full-backup-content>
+    <exclude domain="database" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>
