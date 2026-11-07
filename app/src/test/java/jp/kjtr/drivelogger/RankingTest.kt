@@ -247,4 +247,17 @@ class RankingTest {
         val old = json.decodeFromString(BackupManifest.serializer(), """{ "format": 1, "exportedAt": 5, "trips": [] }""")
         assertNull(old.ranking)
     }
+
+    @Test
+    fun rankTextHidesPlayerCountUntilUnlocked() {
+        // 10 人未満（unlocked = false）: 人数の文字を出さない
+        val locked = RankingRules.myRankText(3, 6, unlocked = false)
+        assertEquals("あなたは 3 位", locked)
+        assertFalse(locked.contains("人"))
+        val guide = RankingRules.lockedText(10)
+        assertEquals("参加者が 10 人になると、上位の一覧が見られます", guide)
+        assertFalse(guide.contains("いま"))
+        // 10 人以上: 今までどおり人数も
+        assertEquals("あなたは 3 位（12 人中）", RankingRules.myRankText(3, 12, unlocked = true))
+    }
 }

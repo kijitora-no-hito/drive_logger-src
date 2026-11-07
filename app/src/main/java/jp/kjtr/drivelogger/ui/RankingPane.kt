@@ -140,7 +140,7 @@ private fun BoardContent(r: BoardReply, board: RankBoard, myName: String, fetche
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     val me = r.me
                     if (me != null) {
-                        Text("あなたは ${me.rank} 位（${r.ranked} 人中）", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(RankingRules.myRankText(me.rank, r.ranked, r.unlocked), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         Text("${board.label}: ${board.format(me.value)}", fontSize = 14.sp)
                     } else {
                         Text("まだ順位がありません", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -160,7 +160,7 @@ private fun BoardContent(r: BoardReply, board: RankBoard, myName: String, fetche
         if (!r.unlocked) {
             item {
                 Text(
-                    "参加者が ${r.minPlayers} 人になると、上位の一覧が見られます（いま ${r.players} 人）",
+                    RankingRules.lockedText(r.minPlayers),
                     fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp),
                 )
             }

@@ -7,7 +7,7 @@
 
 - アプリ名: ドライブロガー
 - applicationId / namespace / パッケージ: `jp.kjtr.drivelogger`（applicationId は公開後に変えられない）
-- minSdk 24 / targetSdk 36 / compileSdk 36、versionCode 10 / versionName "0.9.0"（0.9.0 = 2026-11-07 オンラインランキング・未公開。0.8.0 = 9・0.1.0 = 1・0.2.0 = 2・0.3.0 = 3・0.4.0 = 4・0.4.1 = 5・0.5.0 = 6・0.6.0 = 7・0.7.0 = 8 は公開済み）
+- minSdk 24 / targetSdk 36 / compileSdk 36、versionCode 11 / versionName "0.9.1"（0.9.1 = 2026-11-07・未公開: ランキングで参加者が 10 人になるまで（サーバの `unlocked` が false）は人数を出さない（「あなたは ○ 位」・「参加者が 10 人になると、上位の一覧が見られます」。10 人以上は「（○ 人中）」も）。文言は `RankingRules.myRankText` / `lockedText`、テスト `RankingTest.rankTextHidesPlayerCountUntilUnlocked`。 0.9.0 = 2026-11-07 オンラインランキング・未公開。0.8.0 = 9・0.1.0 = 1・0.2.0 = 2・0.3.0 = 3・0.4.0 = 4・0.4.1 = 5・0.5.0 = 6・0.6.0 = 7・0.7.0 = 8 は公開済み）
 - 配布: GitHub のみ（android-apps、タグ `drivelogger-v<版>`、releases.json の folder `drive_logger`）。
 - 流用元: cycle_route_logger（記録・統計・GPX・更新の確認・Maps キー・署名）、gps_camera（カメラ＋HUD・方位）。元のアプリは変更していない。
 

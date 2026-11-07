@@ -113,6 +113,16 @@ object RankingRules {
         }
     }
 
+    /**
+     * 自分の順位の文言。参加者が 10 人になるまで（[unlocked] が false）は人数を出さない（「あなたは 3 位」）。
+     * 10 人以上なら「あなたは 3 位（12 人中）」（人数は [ranked]＝その板・期間に値がある人）。
+     */
+    fun myRankText(rank: Int, ranked: Int, unlocked: Boolean): String =
+        if (unlocked) "あなたは $rank 位（$ranked 人中）" else "あなたは $rank 位"
+
+    /** 参加者が 10 人未満のときの案内（いまの人数は出さない）。 */
+    fun lockedText(minPlayers: Int): String = "参加者が $minPlayers 人になると、上位の一覧が見られます"
+
     /** 月の表示（"2026-11" → "2026年11月"）。 */
     fun monthLabel(month: String): String {
         val p = month.split('-')
