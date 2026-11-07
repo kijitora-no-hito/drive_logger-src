@@ -251,6 +251,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _messages.trySend(text)
     }
 
+    /** オンラインランキング（0.9.0。参加・送信・読み込み）。 */
+    val ranking get() = app.ranking
+
     /** アプリ内カメラで撮れた（フォトライブラリに保存済み）。今のトリップ（記録していなければ null）に紐づける。 */
     fun onPhotoCaptured(uri: Uri, takenAt: Long) = viewModelScope.launch {
         val p = shooter.register(uri, takenAt, jp.kjtr.drivelogger.data.PhotoEntity.MODE_CAMERA)
@@ -568,7 +571,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun exportBackup(uri: Uri) = viewModelScope.launch {
         val n = withContext(Dispatchers.IO) {
-            runCatching { app.contentResolver.openOutputStream(uri, "wt")?.use { app.backup.export(it) } }.getOrNull()
+            runCatching { app.contentResolver.openOutputStream(uri, "wt")?.use { app.backup.export(it, app.ranking.backup()) } }.getOrNull()
         }
         if (n != null) say(R.string.msg_backup_done, n) else say(R.string.msg_export_failed)
     }
@@ -585,7 +588,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }.getOrNull()
         }
-        if (n != null) say(R.string.msg_restore_done, n) else say(R.string.msg_restore_failed)
+        if (n != null) {
+            say(R.string.msg_restore_done, n.trips)
+            // ランキングの参加も引き継ぐ（バックアップに入っていれば。記録が増えたので値は 30 秒まとめて送られる）
+            if (app.ranking.restore(n.ranking)) say(R.string.msg_ranking_restored, app.ranking.state.value.name)
+        } else {
+            say(R.string.msg_restore_failed)
+        }
     }
 
     companion object {

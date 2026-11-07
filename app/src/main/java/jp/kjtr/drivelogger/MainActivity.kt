@@ -15,6 +15,12 @@ import jp.kjtr.drivelogger.ui.MainViewModel
 class MainActivity : ComponentActivity() {
     private val vm: MainViewModel by viewModels()
 
+    override fun onStart() {
+        super.onStart()
+        // ランキング: 送り残し・消し残し・前回から 1 時間以上たった分を送る（参加していなければ消し残しだけ。記録中は送らない）
+        (application as DriveApp).ranking.onAppOpen()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // targetSdk 36 では edge-to-edge が強制。各画面は WindowInsets で避ける。

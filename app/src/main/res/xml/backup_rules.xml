@@ -3,4 +3,6 @@
 <full-backup-content>
     <exclude domain="database" path="." />
     <exclude domain="external" path="." />
+    <!-- オンラインランキングの参加の情報（ID・合言葉。機種変更は設定のバックアップか端末間の移行で引き継ぐ） -->
+    <exclude domain="sharedpref" path="ranking.xml" />
 </full-backup-content>

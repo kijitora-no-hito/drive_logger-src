@@ -473,6 +473,47 @@ GnssLogger の FLP/WLS を見せて「高精度測位モードはあるか」。
   停車の判定は同じ。衝撃の詳細は §3.5。
 - ドライブの詳細の「平均（停車を除く）」は、停車を除いた時間が 60 秒未満か最高速度を超えるときは「--」（徒歩は 5 km/h 未満がほぼ「停車」に入り、220 km/h などと出ていた）。
 
+### 4.9 オンラインランキング（0.9.0、2026-11-07、`ranking/`・`ui/RankingScreen.kt`）
+
+API・送る値・画面・プライバシーの正本は **`d:\work\android\ranking_server\docs\API.md`**（サーバは `ranking_server/`）。ここはアプリ側の決めごとだけ。
+`ranking/`（`RankingSpec.kt` 以外）と `ui/RankingPane.kt`・`ui/RankingSettings.kt`・`ui/RankingScreen.kt` は自転車ルートロガー・ドライブロガーで**同じ形のコード**（パッケージだけ違う。直すときは両方）。
+基準点めぐり・神社めぐりの `ranking/` の写しで、違いは `RankBoard` の表示の割り算（m → km）・`RankingSync` の `hold`（記録中は送らない）と `JoinResult.HELD`・設定の見出し（設定画面の節の形）・`RankingCellCache`（マスの覚え）。
+
+| ファイル | 中身 |
+|---|---|
+| `ranking/RankingRules.kt` | 純粋な決まり: 日本時間の年月・名前の検査（サーバと同じ: trim → NFC・1〜12 コードポイント・制御文字なし）・アプリを開いたときに送るか・送り直しの間隔・「○ 分前」・板の表示（km） |
+| `ranking/RankingSpec.kt` | app id `drive`・板 `distance`（走行距離 m、画面は km）・`cells`（開拓したマス）・`compute`（**送る数値はここで作るものだけ**） |
+| `ranking/RankingCellCache.kt` | 記録ごとのマスの覚え（`noBackupFilesDir/ranking_cells.bin`。端末の中だけ・送らない。鍵 = `SummaryRepository.cellKey`） |
+| `ranking/RankingApi.kt` | HTTP（HttpURLConnection・kotlinx-serialization）。PUT / GET 板 / DELETE。送る本文は `PutBody`（name・platform・appVersion・month・values・monthValues）だけ |
+| `ranking/RankingStore.kt` | SharedPreferences `ranking`（参加・playerId・secret・名前・未送信の印・最後に送った内容・消し残し・最後に読んだ板・debug の接続先）。クラウドバックアップから除外 |
+| `ranking/RankingSync.kt` | 送信のまとめ・送り直し・参加/名前の変更/やめる・バックアップの引き継ぎ・記録中の保留（Application が 1 つ持つ） |
+| `ui/RankingScreen.kt` / `ui/RankingPane.kt` / `ui/RankingSettings.kt` | ランキングの画面（ホームと、まとめの右上から）/ その中身 / 設定の「オンラインランキング」 |
+
+- **送るもの**: 名前・ランダムな ID・`RankingSpec.compute` の数値（板ごとの累計と今月）・アプリの版・`android`。**位置・座標・経路・マスの場所・記録の名前は送らない**（ソースが公開なので、送る中身は `RankingSpec.compute` と `PutBody` の 2 か所を見れば分かるようにしてある）。
+- **値**（`RankingSpec.compute`、単体テスト `RankingTest`。まとめの計算そのものを使う＝まとめの数字と食い違わない）:
+  - 対象 = 閉じたドライブすべて＝まとめと同じ。乗り物（車 / 自転車 / 徒歩）で分けない・駐車中の徒歩の軌跡は入らない（まとめの距離と同じ。ドライブの距離は GPS ログの合計）。
+  - 総合: 距離 = `DriveSummaries.summarize(...).distanceM`（ドライブの行の距離の合計）を m に丸め、マス = 開拓したマスの数（記録した点。まとめと同じ）。
+  - 今月（日本時間の月。サーバの month と同じ）: 距離 = 開始が今月のドライブの距離の合計、マス = **その月に初めて走ったマス**（`CellShapes.firstSeen` / `newIn`。まとめの「初めて」と同じ）。
+    端末のタイムゾーンが日本以外だと、まとめの「今月」（端末のタイムゾーン）と月の境目が数時間ずれる（ランキングは日本時間に固定）。
+  - サーバの上限を超えたら頭打ち（distance 総合 1e10・今月 1e8（10 万 km）、cells 1e7）。値 0 は「記録なし」としてそのまま送る。
+- **マス**はドライブの点から数えるので重い。記録ごとのマスを `RankingCellCache` に覚え、鍵（`SummaryRepository.cellKey`: 点の数・最終更新（ログを消した・再開して足した）・数え方の版 `CELLS_VERSION`）が変わったドライブだけ数え直す。
+  **マスの数え方（`GridCells`・`SummaryRepository.cellsOf`）を変えたら `CELLS_VERSION` を上げる**。
+- **接続先**: release は `BuildConfig.RANKING_BASE = "https://taisen-game.com/rank/api/v1"`（`app/build.gradle.kts` の 1 か所）だけ。
+  **debug ビルドだけ**設定に接続先の欄が出る（エミュレータから PC のサーバは `http://10.0.2.2:<port>/rank/api/v1`）。
+  平文の HTTP は debug だけ（`src/debug/res/xml/network_security_config.xml` が main の同名ファイル＝cleartext 禁止を上書き）。
+- **参加（既定 OFF）**: 設定のスイッチ → 説明の窓（送るもの / 送らないもの / OFF で消える）と名前（1〜12 文字）→ ID（UUID v4）と secret（32 バイトを base64url）を作ってすぐ PUT。
+  `bad-name` なら OFF に戻して「この名前は使えません」。つながらなければ ON のまま「未送信」。記録中なら ON にして「記録が終わったら送ります」（HELD）。
+- **やめる（OFF）**: ID・secret・名前・読んだ板を消して DELETE。届かなければ「消し残し」として次の通信の前に送る（404 は消えたとみなす）。
+- **いつ送るか**: 閉じたドライブの一覧（`trips.finished()` の id・点の数・距離・開始・最終更新。終了・削除・バックアップの読み込み・計算し直しで変わる）と記録の状態を見張り、送る値（＋名前）が前回と違えば **30 秒後にまとめて 1 回**（毎回ぜんぶ）。アプリを開いたとき（`MainActivity.onStart`）は、未送信・値が違う・前回から 1 時間以上のどれかなら 3 秒後。
+  **記録中（走行サービスが動いている（GPS・録画・駐車中の徒歩の軌跡）・GPS ログか録画が開いている）は送らず値も計算しない**（`hold`）。終わると見張りの Flow が流れて送る。
+- **送り直し**: 通信できない・404・5xx は 1 分・5 分・15 分後、それでもだめなら次にアプリを開いたとき（常駐・WorkManager なし）。429 は `retryAfter` 秒後。`bad-value` などは送り直さない。
+- **banned**（403）: OFF に戻し、ID・secret を消して「この端末はランキングに参加できなくなりました」（Toast と設定）。もう一度 ON にすると新しい ID。`bad-secret` は新しい ID で 1 回だけ登録し直す。
+- **バックアップ**: 参加していれば manifest.json に `ranking { playerId, secret, name }`（無くても読める）。読み込むとその参加を引き継ぐ（今の別の ID はサーバから消す）。
+- **画面**: 板のチップ（走行距離 / 開拓したマス）× 総合／今月。参加していなければ「設定で参加すると見られます」と［設定を開く］（GET しない）。
+  参加者 10 人未満は「あなたは ○ 位（○ 人中）」と「参加者が 10 人になると、上位の一覧が見られます（いま ○ 人）」だけ。10 人以上で上位 100 と自分の行（色付き）。
+  読めなければ最後に読んだ内容と「○ 分前」。距離は km（小数 1 桁）。
+- 確認（2026-11-07、0.9.0）: PC でサーバ（ポート 8795・一時 DB）＋一時 AVD（emulator-5560）で、OFF で送らない → 参加 → 値がまとめと一致 → 10 人未満の画面 → `seed.mjs --n 15` で 10 人以上 → geo fix のドライブを閉じると送る → OFF でサーバから消える → release で接続先の欄が出ない。
+
 ### 4.1 全記録のまとめ（stats/DriveSummary・data/SummaryRepository・ui/SummaryScreen）
 
 2026-10-13 ユーザー要望「全記録のサマリー（総走行距離など）と、地図上に全走行を可視化」。ドライブ一覧の上のカード・［まとめ］から。
@@ -547,9 +588,9 @@ GnssLogger の FLP/WLS を見せて「高精度測位モードはあるか」。
 
 - 初回と走行画面に「運転中は操作しない・画面を注視しない・端末をしっかり固定・視界を妨げない位置に」。
 - 走行中（10 km/h 超）は走行画面から設定・一覧・ホームへ移れない（設定で外せる。戻るも効かない）。［保護］［終了］だけ使える。ホームを開いたままドライブ中に動いているときも、ホームの入口は使えない。
-- 動画・位置は端末の中だけ。送信しない（通信は地図のタイル（Google・地図の焼き込み ON のときの地理院タイル）と更新の確認だけ）。他人・他車のナンバーが写ることへの注意。録音は既定 OFF。
+- 動画・位置は端末の中だけ。送信しない（通信は地図のタイル（Google・地図の焼き込み ON のときの地理院タイル）と更新の確認、0.9.0〜 参加した人だけオンラインランキングの数値（§4.9。位置・経路は送らない））。他人・他車のナンバーが写ることへの注意。録音は既定 OFF。
 - SNS 用に書き出した動画は、利用者が［共有］で選んだアプリに渡したとき・［ギャラリーに保存］したときだけ端末の外・ほかのアプリに出る（§5.1）。
-- バックアップ（ZIP）はドライブだけ（GPX＋manifest。駐車の区間を含む）。動画・写真の紐づけ・徒歩の点は入れない。Android の自動バックアップ・端末移行から DB と動画を外す。
+- バックアップ（ZIP）はドライブだけ（GPX＋manifest。駐車の区間を含む）。動画・写真の紐づけ・徒歩の点は入れない。Android の自動バックアップ・端末移行から DB と動画を外す。0.9.0〜 ランキングに参加していれば manifest に参加の情報（ID・secret・名前）。SharedPreferences `ranking` はクラウドバックアップから外す（端末移行には入る）。
 - 写真（0.4.0〜）: 端末のフォトライブラリ（Pictures/ドライブロガー）に保存。EXIF に撮影日時と（設定で）位置。アプリには写真の参照・縮小版だけ。Photo Picker で選んだ写真は読むだけ。
   SNS 用の画像は利用者が保存・共有したときだけ外に出る。
 - 表示はあとから重ねる（0.4.0〜 既定）: **元の映像には日時・速度・位置・地図が入っていない**。重ねるのは再生・書き出しのときだけ（書き出しで項目を外せば描かない）。

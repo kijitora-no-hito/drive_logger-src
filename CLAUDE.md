@@ -7,7 +7,7 @@
 
 - アプリ名: ドライブロガー
 - applicationId / namespace / パッケージ: `jp.kjtr.drivelogger`（applicationId は公開後に変えられない）
-- minSdk 24 / targetSdk 36 / compileSdk 36、versionCode 9 / versionName "0.8.0"（0.1.0 = 1・0.2.0 = 2・0.3.0 = 3・0.4.0 = 4・0.4.1 = 5・0.5.0 = 6・0.6.0 = 7・0.7.0 = 8 は公開済み）
+- minSdk 24 / targetSdk 36 / compileSdk 36、versionCode 10 / versionName "0.9.0"（0.9.0 = 2026-11-07 オンラインランキング・未公開。0.8.0 = 9・0.1.0 = 1・0.2.0 = 2・0.3.0 = 3・0.4.0 = 4・0.4.1 = 5・0.5.0 = 6・0.6.0 = 7・0.7.0 = 8 は公開済み）
 - 配布: GitHub のみ（android-apps、タグ `drivelogger-v<版>`、releases.json の folder `drive_logger`）。
 - 流用元: cycle_route_logger（記録・統計・GPX・更新の確認・Maps キー・署名）、gps_camera（カメラ＋HUD・方位）。元のアプリは変更していない。
 
@@ -79,6 +79,14 @@
   - 乗り物（設定、既定 車。trip.vehicle）: 自転車は衝撃のしきい値 1.6 倍・融合なし、徒歩は衝撃なし・融合なし。なめらかさも乗り物ごと。
   - 衝撃の検知: しきい値以上が 40 ms（自転車 60 ms）続いたときだけ・直近の振動 × 2 をしきい値に足す・衝撃の最中は重力の推定を止める。
 
+- **0.9.0（2026-11-07）**: オンラインランキング（DESIGN.md §4.9）。正本は `d:\work\android\ranking_server\docs\API.md`（app id `drive`・板 `distance`（m、画面は km）/ `cells`、総合と今月（日本時間））。
+  `ranking/`（`RankingSpec.kt` 以外）・`ui/RankingPane.kt`・`ui/RankingSettings.kt`・`ui/RankingScreen.kt` は **cycle_route_logger と同じ形のコード**（直すときは両方）。
+  参加は既定 OFF。**送るのは名前・ランダムな ID・`RankingSpec.compute` の数値・版・端末の種類だけ**（位置・経路・マスの場所・動画は送らない）。値はまとめの計算そのもの
+  （閉じたドライブすべて・乗り物で分けない・駐車中の徒歩は入らない＝まとめの距離と同じ）。記録中（走行サービス・GPS ログ・録画）は送らない。OFF でサーバから消す。
+  接続先は release 固定 `BuildConfig.RANKING_BASE`、debug だけ設定で変更・平文 HTTP も debug だけ（`src/debug/res/xml/`）。入口はホームの［ランキング］とまとめの右上。
+  バックアップの manifest に参加の情報。SharedPreferences `ranking` はクラウドバックアップから除外。**マスの数え方を変えたら `SummaryRepository.CELLS_VERSION` を上げる**。
+  確認: PC でサーバ（例 PORT=8795・一時 DB）→ debug の設定で接続先 `http://10.0.2.2:8795/rank/api/v1` → 参加 → geo fix でドライブ → `seed.mjs --n 15 --app drive`。
+
 ## 構成
 ```
 app/src/main/java/jp/kjtr/drivelogger/
@@ -96,12 +104,13 @@ app/src/main/java/jp/kjtr/drivelogger/
 ├── playback/ TrackSync（動画の時刻と GPS の同期）・RecordedSpans（録画した区間）・TripTimeline（タイムライン・停車・出来事から開く動画）
 ├── sensor/   LocationHub（端末の GPS / Google の融合測位）・ImpactMonitor（加速度）・OrientationProvider
 ├── data/     Room（trip / trip_point / trip_event / clip / photo / park / walk_point / drive_log（0.6.0〜））・LogMigration（v3→v4 のデータの移行）・TripRepository・SummaryRepository・SettingsStore・Backup
+├── ranking/  オンラインランキング（0.9.0）: RankingRules・RankingSpec（送る値）・RankingApi・RankingStore・RankingSync・RankingCellCache
 ├── geo/ gpx/ update/   cycle_route_logger からの流用（Geo・Simplify・AscentCounter（0.8.0〜 未使用）・GPX・更新の確認）、geo/TrackSmoother（軌跡のなめらかさ、0.8.0〜）
 └── ui/       HomeScreen（ホーム・0.5.0〜）・StartDrive（開始の権限と熱の注意）・DriveScreen（走行画面・駐車中の画面）・MapParts・TripScreens・TimelineUi・TripAnalysisUi・SummaryScreen・ClipScreens（一覧・再生）・
               CameraScreen・PhotoUi・ShareCardScreen・SettingsScreen など
 ```
 
-純ロジックは `app/src/test/` に単体テスト（180 件。0.8.0 で 21 件: 徒歩の合成データで 0.7.0 の融合が生の GPS より悪い原因・歩行の判定と GPS のまま記録・車は融合のまま・判定の出入り・FLP/融合 OFF（WalkFusionTest）、獲得標高の平地/坂/車の短い坂/使わない点/区間（ElevationGainTest）、なめらかさの直線/交差点の角/円弧/外れ値とやり直し/前向きの遅れ（TrackSmootherTest）、衝撃の短いトゲ・自転車の振動・車の穴と衝突・徒歩（ImpactDetectorTest。既存の 4 件は続く時間の判定に合わせて書き換え）、Migration(5,6)・1→6（MigrationTest）。0.7.0 までは 159 件。0.7.0 で 10 件: 長時間録画のファイルはループの上限に数えない・消さない（LoopStoragePolicyTest）、
+純ロジックは `app/src/test/` に単体テスト（192 件。0.9.0 で 12 件: オンラインランキングの名前の検査・日本時間の月・送る本文のキー・値（まとめと一致・今月初めてのマス・上限）・マスの覚え・バックアップ（RankingTest）。0.8.0 までは 180 件。0.8.0 で 21 件: 徒歩の合成データで 0.7.0 の融合が生の GPS より悪い原因・歩行の判定と GPS のまま記録・車は融合のまま・判定の出入り・FLP/融合 OFF（WalkFusionTest）、獲得標高の平地/坂/車の短い坂/使わない点/区間（ElevationGainTest）、なめらかさの直線/交差点の角/円弧/外れ値とやり直し/前向きの遅れ（TrackSmootherTest）、衝撃の短いトゲ・自転車の振動・車の穴と衝突・徒歩（ImpactDetectorTest。既存の 4 件は続く時間の判定に合わせて書き換え）、Migration(5,6)・1→6（MigrationTest）。0.7.0 までは 159 件。0.7.0 で 10 件: 長時間録画のファイルはループの上限に数えない・消さない（LoopStoragePolicyTest）、
 1 時間の見積もり・残り時間（1 GB を残す）・1 GB 未満で止める/残り 30 分未満で警告・始めるのに要る空き・方式の値・分割したファイルを同じ録画だけ制限なしでつなぐ（ループ・別の録画とはつながない）と
 つないだ時間軸・録画 1 回ごとのまとまり（LongRecordingTest）、Migration(4,5)・1→5（MigrationTest）。0.6.0 までは 149 件。0.6.0 で 8 件: ログをまたいで距離・時間・線・trkseg がつながらない・ログの合計＝ドライブ・再開して足したログとまとめの時間帯・動画ログ→録画した区間・駐車で分ける移行の計算・動画の割り当て・最後の記録の時刻（LogsTest）、Migration(3,4)・1→4（MigrationTest）。0.5.0 までは 141 件:0.4.1 で 1 件: 初めて走ったマスの数は矩形ではなくマスの数（CellShapesTest）。0.4.0 で 24 件: 写真の位置の補間・EXIF・駐車の区間・SNS 用の画像のレイアウトと統計（PhotoTest）、
 タイムラインの並べ方・駐車の入れ子・停車・出来事から開く動画・駐車の前後で距離が増えない・GPX の写真/駐車（TimelineTest）、あとから重ねる表示の

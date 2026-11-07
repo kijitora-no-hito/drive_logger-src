@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocalParking
@@ -89,6 +90,7 @@ fun HomeScreen(
     onSummary: () -> Unit,
     onCamera: () -> Unit,
     onSettings: () -> Unit,
+    onRanking: () -> Unit,
 ) {
     val context = LocalContext.current
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -188,6 +190,8 @@ fun HomeScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // 写真: ドライブ中は走行画面の［写真］から撮る（ドライブに紐づく）。ここはドライブしていないときだけ
                     if (!driving) NavTile(Icons.Filled.PhotoCamera, stringResource(R.string.home_nav_camera), onCamera, Modifier.weight(1f))
+                    // 0.9.0〜 オンラインランキング
+                    NavTile(Icons.Filled.Leaderboard, stringResource(R.string.ranking_title), guarded(onRanking), Modifier.weight(1f))
                     NavTile(Icons.Filled.Settings, stringResource(R.string.settings_title), guarded(onSettings), Modifier.weight(1f))
                 }
             }

@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jp.kjtr.drivelogger.BuildConfig
 import jp.kjtr.drivelogger.R
+import jp.kjtr.drivelogger.ranking.RankingSpec
 import jp.kjtr.drivelogger.dashcam.BurnInConfig
 import jp.kjtr.drivelogger.dashcam.BurnInPosition
 import jp.kjtr.drivelogger.dashcam.BurnInRenderer
@@ -236,6 +237,16 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
 
             Section(stringResource(R.string.set_background))
             BackgroundRecordingSection()
+
+            // オンラインランキング（0.9.0。既定 OFF。ranking_server/docs/API.md）
+            HorizontalDivider(Modifier.padding(top = 14.dp, bottom = 6.dp))
+            RankingSettingsSection(
+                sync = vm.ranking,
+                sentValues = RankingSpec.SENT_VALUES,
+                notSent = RankingSpec.NOT_SENT,
+                debug = BuildConfig.DEBUG,
+                onMessage = { vm.toast(it) },
+            )
 
             Section(stringResource(R.string.set_update))
             UpdateSettingsSection(vm) { title, desc, checked, onChange -> SwitchRow(title, desc, checked, onChange = onChange) }

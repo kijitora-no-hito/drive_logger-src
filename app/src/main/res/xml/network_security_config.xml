@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- release: 平文の HTTP は使わない（ランキングは https の本番だけ）。debug は src/debug/res/xml の同名ファイルで上書きする。 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

@@ -10,10 +10,10 @@
 
 | 項目 | 値 |
 | --- | --- |
-| 配布ファイル | `dist/drivelogger-0.8.0-release.apk`（**実キー入りでビルドすること**） |
+| 配布ファイル | `dist/drivelogger-0.9.0-release.apk`（**実キー入りでビルドすること**） |
 | アプリ名 | ドライブロガー |
 | アプリ ID | `jp.kjtr.drivelogger`（namespace も同じ。公開後は変更不可） |
-| バージョン | 0.8.0（versionCode 9、2026-10-13。0.7.0 = 8、0.6.0 = 7、0.5.0 = 6、0.4.1 = 5、0.4.0 = 4、0.3.0 = 3、0.2.0 = 2、0.1.0 = 1。Room 版 6） |
+| バージョン | 0.9.0（versionCode 10、2026-11-07。Room 版 6 のまま。0.8.0 = 9、0.7.0 = 8、0.6.0 = 7、0.5.0 = 6、0.4.1 = 5、0.4.0 = 4、0.3.0 = 3、0.2.0 = 2、0.1.0 = 1。Room 版 6） |
 | 対応 Android | 7.0（minSdk 24）以上 / targetSdk 36 |
 | アイコン | `play-icon-512.png`（`tools/StoreImages.java` で再生成） |
 | プライバシーポリシー | `privacy-policy.html`（問い合わせは GitHub の Issues） |
@@ -25,11 +25,11 @@
 cd <このリポジトリのフォルダ>
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat test assembleRelease
-Copy-Item app\build\outputs\apk\release\app-release.apk dist\drivelogger-0.8.0-release.apk -Force
+Copy-Item app\build\outputs\apk\release\app-release.apk dist\drivelogger-0.9.0-release.apk -Force
 # 署名の確認（SHA-256 が下の「鍵の管理」の値）
-& "$env:JAVA_HOME\bin\java.exe" -jar "$env:LOCALAPPDATA\Android\Sdk\build-tools\37.0.0\lib\apksigner.jar" verify --print-certs dist\drivelogger-0.8.0-release.apk
+& "$env:JAVA_HOME\bin\java.exe" -jar "$env:LOCALAPPDATA\Android\Sdk\build-tools\37.0.0\lib\apksigner.jar" verify --print-certs dist\drivelogger-0.9.0-release.apk
 # Maps キーが入っているか（何も出なければキー入り。値は表示しない）
-& "$env:LOCALAPPDATA\Android\Sdk\build-tools\37.0.0\aapt.exe" dump xmltree dist\drivelogger-0.8.0-release.apk AndroidManifest.xml | Select-String "PLACEHOLDER"
+& "$env:LOCALAPPDATA\Android\Sdk\build-tools\37.0.0\aapt.exe" dump xmltree dist\drivelogger-0.9.0-release.apk AndroidManifest.xml | Select-String "PLACEHOLDER"
 ```
 
 ## Google Cloud の API キー制限（ユーザー作業・配布の前提）
@@ -72,7 +72,7 @@ API の制限は「Maps SDK for Android のみ」のまま。Google のロゴ・
 - **権限**: 位置（「使用中のみ」で可）、カメラ（録画するときだけ）、マイク（音声 ON のときだけ。既定 OFF）、通知、フォアグラウンドサービス
   （location / camera / microphone）、WAKE_LOCK、インターネット（地図・更新の確認）。任意: 位置の「常に許可」（落とされたときの GPS 記録の自動再開だけ）、
   電池の最適化から外す確認。Android 9 以下だけストレージの書き込み（ギャラリーへの書き出し・写真の保存）。カメラは録画と写真。写真の選択は Photo Picker（権限なし）。
-- **通信先**: Google マップ、地図の焼き込みを ON にしたときの国土地理院（地理院タイル。既定 OFF）、更新の確認の GitHub（OFF にできる）だけ。動画・位置は送らない。
+- **通信先**: Google マップ、地図の焼き込みを ON にしたときの国土地理院（地理院タイル。既定 OFF）、更新の確認の GitHub（OFF にできる）、オンラインランキングのサーバ（taisen-game.com、0.9.0〜。設定で参加した人だけ・既定 OFF。数値だけ）だけ。動画・位置は送らない。
   0.8.0〜 測位の方式で「Google の融合測位」を選んだときは、位置の計算に Google Play 開発者サービスを使う（既定は端末の GPS）。
 - **0.2.0 の追加**: 動画に地図を焼き込むオプション（地理院タイル・出典つき）、速度計・コンパス・G メーターのメーター表示（画面・焼き込みで別々に 文字 / メーター）。
 - **0.3.0 の追加**:
@@ -156,6 +156,26 @@ API の制限は「Maps SDK for Android のみ」のまま。Google のロゴ・
 - **プライバシー**: 他人・他車のナンバーが写る。録音は同乗者の会話も入る（既定 OFF）。
 - 動画はアプリの中（アンインストールで消える）。残すものは［ギャラリーに書き出す］。容量の上限を超えると保護していない古い動画から消える（長時間録画は消えない。0.7.0〜）。
 - 自動更新なし（APK 直接配布）。新しい版はホームの帯で知らせる（0.4.1 までは走行画面。ドライブ中は出さない）。
+
+## 0.9.0 の変更（2026-11-07）
+
+- **オンラインランキング**（`docs/DESIGN.md` §4.9。正本は `d:\work\android\ranking_server\docs\API.md`）: 設定「オンラインランキングに参加する」（**既定 OFF**）。
+  参加した人どうしで「走行距離」「開拓したマス」の順位（総合・今月＝日本時間）。参加者 10 人未満は自分の順位だけ、10 人以上で上位 100 人。入口はホームの［ランキング］とまとめの右上。
+  送るのは名前・ランダムな ID・数値・版・端末の種類だけ（位置・経路・マスの場所・動画は送らない）。値はまとめと同じ（乗り物で分けない・駐車中の徒歩は入らない）。記録中は送らない。
+  参加をやめるとサーバの記録は消える。バックアップに参加の情報（ID・合言葉・名前）を入れる。
+- **通信先が増える**（taisen-game.com。参加した人だけ）。権限は変わらない。**プライバシーポリシーを更新**（`privacy-policy.html`: 通信の節・オンラインランキングの節・最終更新 2026-11-07）。
+  **android-apps の公開版のポリシー・説明ページも合わせて直すこと**。アプリの「このアプリについて」・最初の安全の注意の通信の記述も直した。
+- **サーバ（ranking_server）を本番に置いてから公開する**こと。
+- releases.json の notes の文案:
+
+  ```
+  - オンラインランキングを追加しました（設定で参加した人だけ・はじめはオフ）
+  - 参加した人どうしで「走行距離」「開拓したマス」の順位（総合・今月）を見られます（ホームの［ランキング］・まとめの右上から）
+  - 参加者が 10 人になるまでは自分の順位だけ、10 人以上で上位 100 人の一覧が見られます
+  - 送るのは名前・ランダムな ID・数値だけで、位置・経路・マスの場所・動画は送りません。参加をやめるとサーバの記録は消えます
+  ```
+
+- 説明ページ用のスクリーンショット候補: `captures/rank/05-unlocked.png`（走行距離・総合・10 人以上）、`captures/rank/06-locked-cells-month.png`（10 人未満）。エミュレータ・架空のプレイヤー。
 
 ## 残っている作業
 

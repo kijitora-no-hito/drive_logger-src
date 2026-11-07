@@ -3,6 +3,7 @@ package jp.kjtr.drivelogger.data
 import android.util.Xml
 import jp.kjtr.drivelogger.gpx.GpxParser
 import jp.kjtr.drivelogger.gpx.GpxWriter
+import jp.kjtr.drivelogger.ranking.RankingBackup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -20,6 +21,8 @@ data class BackupManifest(
     val app: String = "jp.kjtr.drivelogger",
     val exportedAt: Long,
     val trips: List<TripMeta>,
+    /** オンラインランキングの参加（playerId・secret・名前。0.9.0〜、参加していなければ無し）。読み込むと同じ参加者として続く。 */
+    val ranking: RankingBackup? = null,
 )
 
 @Serializable
@@ -76,7 +79,8 @@ data class EventMeta(
 class Backup(private val db: AppDatabase, private val trips: TripRepository) {
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
-    suspend fun export(out: OutputStream): Int = withContext(Dispatchers.IO) {
+    /** [ranking] = ランキングの参加の情報（参加していなければ null。ranking_server/docs/API.md §2）。 */
+    suspend fun export(out: OutputStream, ranking: RankingBackup? = null): Int = withContext(Dispatchers.IO) {
         val list = trips.allFinished()
         val metas = ArrayList<TripMeta>()
         ZipOutputStream(out).use { zip ->
@@ -97,14 +101,17 @@ class Backup(private val db: AppDatabase, private val trips: TripRepository) {
                 metas.add(TripMeta(file, t.name, t.startedAt, t.endedAt, t.autoPause, t.recordedVideo, t.distanceM, t.movingMs, t.stillMs, t.maxSpeedMps, events, parks, gpsLogs))
             }
             zip.putNextEntry(ZipEntry(MANIFEST))
-            w.write(json.encodeToString(BackupManifest.serializer(), BackupManifest(exportedAt = System.currentTimeMillis(), trips = metas)))
+            w.write(json.encodeToString(BackupManifest.serializer(), BackupManifest(exportedAt = System.currentTimeMillis(), trips = metas, ranking = ranking)))
             w.flush()
             zip.closeEntry()
         }
         metas.size
     }
 
-    suspend fun import(zipFile: File): Int = withContext(Dispatchers.IO) {
+    /** 読み込んだドライブの数と、バックアップに入っていたランキングの参加の情報。 */
+    data class Imported(val trips: Int, val ranking: RankingBackup?)
+
+    suspend fun import(zipFile: File): Imported = withContext(Dispatchers.IO) {
         ZipFile(zipFile).use { zip ->
             val mEntry = zip.getEntry(MANIFEST) ?: throw IllegalArgumentException("no manifest")
             val manifest = zip.getInputStream(mEntry).use { json.decodeFromString(BackupManifest.serializer(), it.readBytes().toString(Charsets.UTF_8)) }
@@ -158,7 +165,7 @@ class Backup(private val db: AppDatabase, private val trips: TripRepository) {
                 for (pm in tm.parks) db.parks().insert(ParkEntity(tripId = id, startedAt = pm.startedAt, endedAt = pm.endedAt, lat = pm.lat, lon = pm.lon, walkDistanceM = pm.walkDistanceM))
                 count++
             }
-            count
+            Imported(count, manifest.ranking)
         }
     }
 

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.GridOn
@@ -110,7 +111,7 @@ private val SUMMARY_MAP_MIN_HEIGHT = 400.dp
 /** 全記録のまとめ（統計・全走行の地図・グラフ）。 */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SummaryScreen(vm: MainViewModel, onBack: () -> Unit, onOpenTrip: (Long) -> Unit) {
+fun SummaryScreen(vm: MainViewModel, onBack: () -> Unit, onOpenTrip: (Long) -> Unit, onRanking: () -> Unit = {}) {
     val trips by remember { vm.trips.finished() }.collectAsState(emptyList())
     val settings by vm.settings.collectAsState()
     val digests by produceState<List<TripDigest>?>(null, trips) { value = vm.app.summaries.digests(trips) }
@@ -232,6 +233,13 @@ fun SummaryScreen(vm: MainViewModel, onBack: () -> Unit, onOpenTrip: (Long) -> U
             TopAppBar(
                 title = { Text(stringResource(R.string.summary_title)) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back)) } },
+                // 0.9.0〜 オンラインランキングへ
+                actions = {
+                    TextButton(onClick = onRanking) {
+                        Icon(Icons.Filled.Leaderboard, contentDescription = null)
+                        Text(" " + stringResource(R.string.ranking_title))
+                    }
+                },
             )
         },
     ) { pad ->

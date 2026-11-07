@@ -34,6 +34,10 @@ fun AppNav(vm: MainViewModel) {
     LaunchedEffect(Unit) {
         vm.messages.collect { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
     }
+    // オンラインランキングの知らせ（参加できなくなった など）
+    LaunchedEffect(Unit) {
+        vm.ranking.messages.collect { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+    }
     fun goHome() {
         if (!nav.popBackStack(MainViewModel.ROUTE_HOME, false)) nav.navigate(MainViewModel.ROUTE_HOME) { launchSingleTop = true }
     }
@@ -72,7 +76,12 @@ fun AppNav(vm: MainViewModel) {
                 onSummary = { nav.navigate("summary") },
                 onCamera = { nav.navigate("camera") { launchSingleTop = true } },
                 onSettings = { nav.navigate("settings") },
+                onRanking = { nav.navigate("ranking") { launchSingleTop = true } },
             )
+        }
+        // オンラインランキング（0.9.0。ホーム・まとめから）
+        composable("ranking") {
+            RankingScreen(vm, onBack = { nav.popBackStack() }, onSettings = { nav.navigate("settings") { launchSingleTop = true } })
         }
         composable(MainViewModel.ROUTE_DRIVE) {
             DriveScreen(
@@ -87,7 +96,9 @@ fun AppNav(vm: MainViewModel) {
             ShareCardScreen(vm, entry.arguments?.getLong("id") ?: 0L, onBack = { nav.popBackStack() })
         }
         composable("trips") { TripListScreen(vm, onBack = { nav.popBackStack() }, onOpen = { nav.navigate("trip/$it") }, onSummary = { nav.navigate("summary") }) }
-        composable("summary") { SummaryScreen(vm, onBack = { nav.popBackStack() }, onOpenTrip = { nav.navigate("trip/$it") }) }
+        composable("summary") {
+            SummaryScreen(vm, onBack = { nav.popBackStack() }, onOpenTrip = { nav.navigate("trip/$it") }, onRanking = { nav.navigate("ranking") { launchSingleTop = true } })
+        }
         composable(
             "trip/{id}?finished={finished}",
             arguments = listOf(navArgument("id") { type = NavType.LongType }, navArgument("finished") { type = NavType.BoolType; defaultValue = false }),

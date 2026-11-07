@@ -69,7 +69,7 @@ class SummaryRepository(private val db: AppDatabase) {
         val facts = TripFacts(
             id = t.id, name = t.name, startedAt = t.startedAt, endedAt = end, distanceM = t.distanceM, movingMs = t.movingMs,
             maxSpeedMps = t.maxSpeedMps, ascentM = ascent, videoMs = RecordedSpans.totalMs(spans), protects = protects,
-            speedBinsMs = bins, cells = GridCells.cellsOf(pts.map { it.lat to it.lon }),
+            speedBinsMs = bins, cells = cellsOfPoints(pts),
             parks = parks.size, parkMs = parks.sumOf { ((it.endedAt ?: end) - it.startedAt).coerceAtLeast(0) },
             // 曜日・時間帯は GPS ログの時間帯で数える（再開して日をまたいだドライブの、記録していない時間を入れない）
             logSpans = logs.filter { it.isGps }.map { it.startedAt to (it.endedAt ?: end) },
@@ -80,5 +80,18 @@ class SummaryRepository(private val db: AppDatabase) {
             fine = lineSegs.map { Simplify.forDisplay(it, maxPoints = 2000, toleranceM = 8.0) },
         )
         return TripDigest(facts, lines)
+    }
+
+    /** ドライブ 1 本の開拓したマス（まとめと同じ数え方＝記録した点。オンラインランキングの「開拓したマス」に使う。0.9.0）。 */
+    suspend fun cellsOf(t: TripEntity): Set<Long> = cellsOfPoints(withContext(Dispatchers.IO) { db.trips().points(t.id) })
+
+    companion object {
+        /** マスの数え方を変えたら上げる（ランキングのマスの覚え [cellKey] を作り直させる）。 */
+        private const val CELLS_VERSION = 1
+
+        private fun cellsOfPoints(pts: List<TripPointEntity>): Set<Long> = GridCells.cellsOf(pts.map { it.lat to it.lon })
+
+        /** [cellsOf] の結果が変わりうるものの鍵（点の数・最終更新（ログを消した・再開して足した）・数え方の版）。 */
+        fun cellKey(t: TripEntity): String = "$CELLS_VERSION|${t.pointCount}|${t.updatedAt}"
     }
 }

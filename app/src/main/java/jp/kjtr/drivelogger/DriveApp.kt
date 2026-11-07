@@ -13,6 +13,11 @@ import jp.kjtr.drivelogger.photo.PhotoRepository
 import jp.kjtr.drivelogger.photo.PhotoShooter
 import jp.kjtr.drivelogger.record.DriveSession
 import jp.kjtr.drivelogger.record.RecorderStatus
+import jp.kjtr.drivelogger.ranking.RankValues
+import jp.kjtr.drivelogger.ranking.RankingCellCache
+import jp.kjtr.drivelogger.ranking.RankingSpec
+import jp.kjtr.drivelogger.ranking.RankingSync
+import jp.kjtr.drivelogger.stats.TripFacts
 import jp.kjtr.drivelogger.sensor.ImpactMonitor
 import jp.kjtr.drivelogger.sensor.LocationHub
 import jp.kjtr.drivelogger.service.DriveController
@@ -21,6 +26,7 @@ import jp.kjtr.drivelogger.update.UpdateManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -63,6 +69,37 @@ class DriveApp : Application() {
     /** 更新の確認（GitHub の releases.json。設定で OFF なら通信しない）。 */
     val updates: UpdateManager by lazy { UpdateManager(this, appScope) { settings.settings.value.updateCheck } }
 
+    /** オンラインランキング（0.9.0。参加は設定で ON にした人だけ・既定 OFF。docs/DESIGN.md §4.9）。 */
+    val ranking: RankingSync by lazy {
+        RankingSync(
+            context = this,
+            scope = appScope,
+            appId = RankingSpec.APP_ID,
+            appVersion = BuildConfig.VERSION_NAME,
+            userAgent = "DriveLogger/${BuildConfig.VERSION_NAME} (Android; $packageName)",
+            releaseBaseUrl = BuildConfig.RANKING_BASE,
+            debug = BuildConfig.DEBUG,
+            snapshot = { rankingSnapshot() },
+            // 記録中（GPS・録画・駐車中の徒歩の軌跡）は送らない（終わってから。watch の Flow が流れる）
+            hold = { recorder.serviceRunning.value || session.state.value?.recording == true },
+        )
+    }
+    private val rankingCells by lazy { RankingCellCache(java.io.File(noBackupFilesDir, "ranking_cells.bin")) }
+
+    /** ランキングに送る値（閉じたドライブすべて。まとめと同じ距離・マス）。 */
+    private suspend fun rankingSnapshot(): RankValues {
+        val list = trips.allFinished()
+        val byId = list.associateBy { it.id }
+        val cells = rankingCells.cells(list.map { it.id to SummaryRepository.cellKey(it) }) { id -> summaries.cellsOf(byId.getValue(id)) }
+        val facts = list.map { t ->
+            TripFacts(
+                id = t.id, name = "", startedAt = t.startedAt, endedAt = t.endedAt ?: t.startedAt,
+                distanceM = t.distanceM, movingMs = t.movingMs, maxSpeedMps = t.maxSpeedMps, cells = cells[t.id].orEmpty(),
+            )
+        }
+        return RankingSpec.compute(facts, System.currentTimeMillis())
+    }
+
     override fun onCreate() {
         super.onCreate()
         appScope.launch {
@@ -91,6 +128,15 @@ class DriveApp : Application() {
                 locationHub.setUseFused(it == jp.kjtr.drivelogger.data.Positioning.GOOGLE)
             }
         }
+        // オンラインランキング（0.9.0）: 閉じたドライブが変わったら（終了・削除・バックアップの読み込み・計算し直し）30 秒まとめて送る（参加しているときだけ）。
+        // 記録中は送らず、終わったときにもう一度流れるよう記録の状態も一緒に見る
+        ranking.watch(
+            combine(
+                trips.finished().map { l -> l.map { listOf(it.id, it.pointCount, it.distanceM, it.startedAt, it.updatedAt) } }.distinctUntilChanged(),
+                recorder.serviceRunning,
+                session.state.map { it?.recording == true }.distinctUntilChanged(),
+            ) { a, b, c -> listOf(a, b, c) }.distinctUntilChanged(),
+        )
         // 落ちたときに録画中のまま残った動画の行・行の無いファイルを突き合わせる
         appScope.launch {
             runCatching { clips.reconcile(dashcam.state.value.currentFile) }

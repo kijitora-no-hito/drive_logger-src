@@ -26,8 +26,10 @@ android {
         applicationId = "jp.kjtr.drivelogger"
         minSdk = 24
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.8.0"
+        versionCode = 10
+        versionName = "0.9.0"
+        // オンラインランキングの接続先（ranking_server/docs/API.md §0）。release はこの定数だけ。debug だけ設定で変えられる
+        buildConfigField("String", "RANKING_BASE", "\"https://taisen-game.com/rank/api/v1\"")
         vectorDrawables { useSupportLibrary = true }
     }
 
